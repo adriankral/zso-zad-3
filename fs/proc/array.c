@@ -340,6 +340,15 @@ static void task_cpus_allowed(struct seq_file *m, struct task_struct *task)
 		   cpumask_pr_args(&task->cpus_allowed));
 }
 
+int proc_pid_full_delete(struct seq_file *m, struct pid_namespace *ns,
+			 struct pid *pid, struct task_struct *task)
+{
+	seq_puts(m, "0");
+	seq_putc(m, '\n');
+	return 0;
+}
+	
+
 int proc_pid_status(struct seq_file *m, struct pid_namespace *ns,
 			struct pid *pid, struct task_struct *task)
 {
