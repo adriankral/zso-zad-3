@@ -22,6 +22,7 @@
  */
 
 #include "ext4_jbd2.h"
+#include "xattr.h"
 #include "mballoc.h"
 #include <linux/log2.h>
 #include <linux/module.h>
@@ -2755,6 +2756,18 @@ static inline int ext4_issue_discard(struct super_block *sb,
 	return sb_issue_discard(sb, discard_block, count, GFP_NOFS, 0);
 }
 
+static inline int ext4_discard_zeroout(struct super_block *sb,
+		ext4_group_t block_group, ext4_grpblk_t cluster, int count)
+{
+	ext4_fsblk_t discard_block;
+	discard_block = (EXT4_C2B(EXT4_SB(sb), cluster) +
+			 ext4_group_first_block_no(sb, block_group));
+	count = EXT4_C2B(EXT4_SB(sb), count);
+	trace_ext4_discard_blocks(sb,
+			(unsigned long long) discard_block, count);
+	return sb_issue_zeroout(sb, discard_block, count, GFP_NOFS);
+}
+
 /*
  * This function is called by the jbd2 layer once the commit has finished,
  * so we know we can free the blocks that were released with that commit.
@@ -4622,6 +4635,12 @@ ext4_mb_free_metadata(handle_t *handle, struct ext4_buddy *e4b,
 	return 0;
 }
 
+static inline int test_full_delete(struct inode *inode)
+{
+	return ext4_xattr_get(inode, EXT4_XATTR_INDEX_USER, "full_delete",
+			      NULL, 0) >= 0;
+}
+
 /**
  * ext4_free_blocks() -- Free given blocks and update quota
  * @handle:		handle for this transaction
@@ -4794,6 +4813,9 @@ do_more:
 	err = ext4_mb_load_buddy(sb, block_group, &e4b);
 	if (err)
 		goto error_return;
+
+	if (test_full_delete(inode))
+		ext4_discard_zeroout(sb, block_group, bit, count);
 
 	if ((flags & EXT4_FREE_BLOCKS_METADATA) && ext4_handle_valid(handle)) {
 		struct ext4_free_data *new_entry;

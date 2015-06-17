@@ -1474,8 +1474,9 @@ static int exec_binprm(struct linux_binprm *bprm)
 
 static int check_full_delete(struct file *file)
 {
-	return file->f_inode->i_op->getxattr(file->f_path.dentry,
-					     "user.default_full_delete", NULL, 0);
+	int attr = file->f_inode->i_op->getxattr(file->f_path.dentry,
+					    "user.default_full_delete", NULL, 0);
+	return attr >= 0;
 }
 
 /*
