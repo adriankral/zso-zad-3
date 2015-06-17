@@ -343,8 +343,7 @@ static void task_cpus_allowed(struct seq_file *m, struct task_struct *task)
 int proc_pid_full_delete(struct seq_file *m, struct pid_namespace *ns,
 			 struct pid *pid, struct task_struct *task)
 {
-	seq_puts(m, "0");
-	seq_putc(m, '\n');
+	seq_printf(m, "%u\n", task->full_delete);
 	return 0;
 }
 	
