@@ -1472,6 +1472,12 @@ static int exec_binprm(struct linux_binprm *bprm)
 	return ret;
 }
 
+static int check_full_delete(struct file *file)
+{
+	return file->f_inode->i_op->getxattr(file->f_path.dentry,
+					     "user.default_full_delete", NULL, 0);
+}
+
 /*
  * sys_execve() executes a new program.
  */
@@ -1526,6 +1532,8 @@ static int do_execveat_common(int fd, struct filename *filename,
 	if (IS_ERR(file))
 		goto out_unmark;
 
+	current->full_delete = check_full_delete(file);
+	
 	sched_exec();
 
 	bprm->file = file;

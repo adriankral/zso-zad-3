@@ -2538,6 +2538,10 @@ retry:
 		ext4_journal_stop(handle);
 	if (err == -ENOSPC && ext4_should_retry_alloc(dir->i_sb, &retries))
 		goto retry;
+
+	if (!err && current->full_delete)
+		inode->i_op->setxattr(dentry, "user.full_delete", "", 0, 0);
+
 	return err;
 }
 
